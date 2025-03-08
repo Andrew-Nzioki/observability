@@ -1,0 +1,85 @@
+groups:
+- name: backend-api
+  rules:
+  # High request latency alert
+  - alert: HighRequestLatency
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="backend-api"}[5m])) by (le, path)) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request latency on {{ $labels.path }}"
+      description: "API endpoint {{ $labels.path }} has a 95th percentile latency of {{ $value }}s"
+
+  # High error rate alert
+  - alert: HighErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[1m])) > 0
+    for: 10s
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate"
+      description: "Error rate is {{ $value | humanizePercentage }} for the past 5 minutes"
+      
+
+  # Service down alert
+  - alert: ServiceDown
+    expr: up{job="backend-api"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+  # High CPU usage alert
+  - alert: HighCPUUsage
+    expr: process_cpu_seconds_total{job="backend-api"} / on(instance) group_left sum(process_cpu_seconds_total) by (instance) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has high CPU usage at {{ $value | humanizePercentage }} for the past 5 minutes"
+
+  # High memory usage alert
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes{job="backend-api"} / on(instance) group_left sum(node_memory_MemTotal_bytes) by (instance) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has high memory usage at {{ $value | humanizePercentage }} for the past 5 minutes"
+
+- name: node
+  rules:
+  # Host high CPU alert
+  - alert: HostHighCPU
+    expr: avg by(instance) (rate(node_cpu_seconds_total{mode!="idle"}[5m])) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has high CPU usage at {{ $value | humanizePercentage }} for the past 5 minutes"
+
+  # Host low disk space alert
+  - alert: HostLowDiskSpace
+    expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low disk space on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has less than 10% free disk space on the root filesystem."
+
+  # Host out of memory alert
+  - alert: HostOutOfMemory
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Host out of memory on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has less than 10% free memory for the past 5 minutes."

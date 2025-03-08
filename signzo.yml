@@ -1,0 +1,13 @@
+  # SigNoz - Alternative complete solution (Optional)
+  # Uncomment if you prefer all-in-one solution
+  # signoz-otel-collector:
+  #   image: signoz/signoz-otel-collector:latest
+  #   command: ["--config=/etc/otel-collector-config.yaml"]
+  #   volumes:
+  #     - ./signoz/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+  #   ports:
+  #     - "4317:4317"   # OTLP gRPC
+  #     - "4318:4318"   # OTLP HTTP
+  #   networks:
+  #     - observability
+  #   restart: unless-stopped
